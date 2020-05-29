@@ -54,10 +54,10 @@ function getAllFriends(cursor) {
                 }
             })
             .catch((err) => {
-                console.log(`[Friends] Getting all friends failed: ${err}`);
+                console.log(`[Friends] Getting all friends failed: ${err[0].message}`);
                 return;
             });
-    }, 1000 * 3);
+    }, 1000 * 5);
 }
 
 function getUser() {
