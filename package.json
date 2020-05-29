@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/TuOfTimes/follower-bot/issues"
   },
-  "homepage": "https://github.com/TuOfTimes/follower-bot#readme"
+  "homepage": "https://github.com/TuOfTimes/follower-bot#readme",
+  "dependencies": {
+    "twitter": "^1.7.1"
+  }
 }
