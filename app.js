@@ -1,21 +1,20 @@
-console.log("Twitter Giveaway Bot is starting...\n");
+console.log("Twitter Follower Bot is starting...\n");
 
 // require
 var Twitter = require("twitter");
 var config = require("./config.json");
-var fs = require("fs");
 
 var T = new Twitter(config.credentials);
 
 // global vars
 var params = {
-    q: "#followforfollow OR #f4f OR #followback",
+    q: config.search_keywords.join(" OR "),
     count: 100,
     result_type: "recent",
     lang: "en",
 };
 
-var friends = []; // array of user_id strings, max 2000 follows at a time
+var friends = new Set(); // array of user_id strings, max 2000 follows at a time
 
 // functions
 function getFriends(cursor) {
@@ -41,9 +40,11 @@ function getAllFriends(cursor) {
     setTimeout(() => {
         getFriends(cursor)
             .then((results) => {
-                friends.push(...results.users);
+                results.users.forEach((user) => {
+                    friends.add(user.id_str);
+                });
                 console.log(
-                    `[Friends] Friends list now has ${friends.length} entries`
+                    `[Friends] Friends list now has ${friends.size} entries`
                 );
                 if (results.next_cursor_str == "0") {
                     return;
@@ -53,7 +54,7 @@ function getAllFriends(cursor) {
                 }
             })
             .catch((err) => {
-                console.log(err);
+                console.log(`[Friends] Getting all friends failed: ${err}`);
                 return;
             });
     }, 1000 * 3);
@@ -62,7 +63,6 @@ function getAllFriends(cursor) {
 function getUser() {
     return T.get("search/tweets", params)
         .then((data) => {
-            var results = [];
             for (let i = 0; i < data.statuses.length; i++) {
                 var tweet;
                 if (data.statuses[i].retweeted_status) {
@@ -71,16 +71,18 @@ function getUser() {
                     tweet = data.statuses[i];
                 }
 
-                if (!friends.includes(tweet.user.id_str)) {
+                if (!friends.has(tweet.user.id_str)) {
                     console.log(
                         `[Users] Found new user with ID of ${tweet.user.id_str}`
                     );
                     return tweet.user.id_str;
                 }
             }
+            return getUser();
         })
         .catch((err) => {
             console.log("[Tweets] Get: ", err);
+            throw err;
         });
 }
 
@@ -89,10 +91,10 @@ function unfollowTweeter(userID) {
         user_id: userID,
     })
         .then((response) => {
-            console.log("[Giveaway] Unfollowed: ", `@${response.screen_name}`);
+            console.log("[Users] Unfollowed: ", `@${response.screen_name}`);
         })
         .catch((err) => {
-            console.log("[Giveaway] Unfollow: ", err[0].message);
+            console.log("[Users] Unfollow: ", err[0].message);
         });
 }
 
@@ -102,17 +104,17 @@ function followTweeter(userID) {
         follow: true,
     })
         .then((response) => {
-            console.log("[Giveaway] Followed: ", `@${response.screen_name}`);
+            console.log("[Users] Followed: ", `@${response.screen_name}`);
         })
         .catch((err) => {
-            console.log("[Giveaway] Follow: ", err[0].message);
+            console.log("[Users] Follow: ", err[0].message);
         });
 }
 
 function interact(userID) {
-    console.log(`[Interact] Following user` + userID);
+    console.log(`[Interact] Following user ` + userID);
 
-    if (!friends.includes(userID)) {
+    if (!friends.has(userID)) {
         if (friends.length == 2000) {
             const toUnfollow = friends.shift();
             console.log(
@@ -120,21 +122,21 @@ function interact(userID) {
             );
             unfollowTweeter(toUnfollow);
         } else {
-            followTweeter(tweet.user.id_str);
+            followTweeter(userID);
         }
     } else {
         friends.splice(friends.indexOf(userID), 1);
         console.log("[Interact] Already following ", userID);
     }
-    friends.push(userID);
+    friends.add(userID);
 }
 
-getTweets();
-setInterval(() => {
-    getTweets();
-}, 1000 * 15);
+function loop() {
+    getUser().then((userID) => {
+        interact(userID);
+    });
+    setTimeout(loop, 1000 * 216);
+}
 
 getAllFriends();
-setInterval(() => {
-    interact();
-}, 1000 * 216);
+loop();
