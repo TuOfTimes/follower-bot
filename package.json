@@ -1,0 +1,19 @@
+{
+  "name": "follower-bot",
+  "version": "1.0.0",
+  "description": "A bot that helps a Twitter account gain followers",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TuOfTimes/follower-bot.git"
+  },
+  "author": "Edward Tu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/TuOfTimes/follower-bot/issues"
+  },
+  "homepage": "https://github.com/TuOfTimes/follower-bot#readme"
+}
