@@ -7,68 +7,87 @@ var config = require("./config.json");
 var T = new Twitter(config.credentials);
 
 // global vars
-var params = {
-    q: config.search_keywords.join(" OR "),
-    count: 100,
-    result_type: "recent",
-    lang: "en",
-};
-
 var friends = new Set(); // array of user_id strings, max 2000 follows at a time
 
 // functions
+function delay(time, value) {
+    return new Promise((resolve) => {
+        setTimeout(() => resolve(value), time);
+    });
+}
+
 function getFriends(cursor) {
-    var friends_param = {
+    var params = {
         screen_name: config.credentials.screen_name,
         count: 200,
     };
 
     if (cursor) {
-        friends_param.cursor = cursor;
+        params.cursor = cursor;
     }
 
-    return T.get("friends/list", friends_param)
-        .then((results) => {
-            return results;
+    return T.get("friends/list", params)
+        .then((response) => {
+            return response;
         })
         .catch((err) => {
+            console.log("[Friends] Get: ", err);
+            throw err;
+        });
+}
+
+function getTweets(since_id) {
+    var params = {
+        q: config.search_keywords.join(" OR "),
+        count: 100,
+        result_type: "recent",
+        lang: "en",
+    };
+
+    if (since_id) {
+        params.since_id = since_id;
+    }
+
+    return T.get("search/tweets", params)
+        .then((response) => {
+            return response;
+        })
+        .catch((err) => {
+            console.log("[Tweets] Get: ", err);
             throw err;
         });
 }
 
 function getAllFriends(cursor) {
-    setTimeout(() => {
-        getFriends(cursor)
-            .then((results) => {
-                results.users.forEach((user) => {
-                    friends.add(user.id_str);
-                });
-                console.log(
-                    `[Friends] Friends list now has ${friends.size} entries`
-                );
-                if (results.next_cursor_str == "0") {
-                    return;
-                } else {
-                    // console.log(results.next_cursor_str);
-                    return getAllFriends(results.next_cursor_str);
-                }
-            })
-            .catch((err) => {
-                console.log(`[Friends] Getting all friends failed: ${err[0].message}`);
-                return;
+    return getFriends(cursor)
+        .then((response) => {
+            response.users.forEach((user) => {
+                friends.add(user.id_str);
             });
-    }, 1000 * 5);
+
+            console.log(`[Friends] Found total of ${friends.size} friends`);
+
+            if (response.next_cursor_str != "0") {
+                return delay(1000 * 8).then(() => {
+                    return getAllFriends(response.next_cursor_str);
+                });
+            }
+        })
+        .catch((err) => {
+            console.log(`[Friends] Getting all friends failed: ${err}`);
+            throw err;
+        });
 }
 
-function getUser() {
-    return T.get("search/tweets", params)
-        .then((data) => {
-            for (let i = 0; i < data.statuses.length; i++) {
+function getUser(since_id) {
+    return getTweets(since_id)
+        .then((response) => {
+            for (let i = 0; i < response.statuses.length; i++) {
                 var tweet;
-                if (data.statuses[i].retweeted_status) {
-                    tweet = data.statuses[i].retweeted_status;
+                if (response.statuses[i].retweeted_status) {
+                    tweet = response.statuses[i].retweeted_status;
                 } else {
-                    tweet = data.statuses[i];
+                    tweet = response.statuses[i];
                 }
 
                 if (!friends.has(tweet.user.id_str)) {
@@ -78,10 +97,17 @@ function getUser() {
                     return tweet.user.id_str;
                 }
             }
-            return getUser();
+
+            console.log(
+                "[Users] Did not find a new user. Fetching another batch of tweets"
+            );
+            return delay(1000 * 8).then(() => {
+                return getUser(response.search_metadata.max_id_str);
+            });
         })
         .catch((err) => {
-            console.log("[Tweets] Get: ", err);
+            console.log(`[User] Getting a new user ID failed`);
+            console.log(err);
             throw err;
         });
 }
@@ -131,12 +157,15 @@ function interact(userID) {
     friends.add(userID);
 }
 
-function loop() {
-    getUser().then((userID) => {
-        interact(userID);
+getAllFriends()
+    .then(() => {
+        setInterval(() => {
+            getUser().then((userID) => {
+                interact(userID);
+            });
+        }, 1000 * 216);
+    })
+    .catch((err) => {
+        console.log("Program Failed");
+        console.log(err);
     });
-    setTimeout(loop, 1000 * 216);
-}
-
-getAllFriends();
-loop();
