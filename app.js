@@ -163,7 +163,7 @@ getAllFriends()
                     interact(userID);
                 })
                 .catch((err) => {
-                    console.log("Error getting user");
+                    console.log("Error getting user", err);
                 });
         }, 1000 * 216);
     })
