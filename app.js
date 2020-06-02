@@ -138,7 +138,7 @@ function followTweeter(userID) {
 function interact(userID) {
     console.log(`[Interact] Following user ` + userID);
 
-    if (!friends.has(userID)) {
+    if (!friends.includes(userID)) {
         if (friends.length == 2000) {
             const toUnfollow = friends.shift();
             console.log(
