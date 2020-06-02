@@ -7,7 +7,7 @@ var config = require("./config.json");
 var T = new Twitter(config.credentials);
 
 // global vars
-var friends = new Set(); // array of user_id strings, max 2000 follows at a time
+var friends = []; // array of user_id strings, max 2000 follows at a time
 
 // functions
 function delay(time, value) {
@@ -62,10 +62,12 @@ function getAllFriends(cursor) {
     return getFriends(cursor)
         .then((response) => {
             response.users.forEach((user) => {
-                friends.add(user.id_str);
+                if (!friends.includes(user.id_str)) {
+                    friends.push(user.id_str);
+                }
             });
 
-            console.log(`[Friends] Found total of ${friends.size} friends`);
+            console.log(`[Friends] Found total of ${friends.length} friends`);
 
             if (response.next_cursor_str != "0") {
                 return delay(1000 * 8).then(() => {
@@ -90,7 +92,7 @@ function getUser(since_id) {
                     tweet = response.statuses[i];
                 }
 
-                if (!friends.has(tweet.user.id_str)) {
+                if (!friends.includes(tweet.user.id_str)) {
                     console.log(
                         `[Users] Found new user with ID of ${tweet.user.id_str}`
                     );
@@ -154,7 +156,7 @@ function interact(userID) {
         friends.splice(friends.indexOf(userID), 1);
         console.log("[Interact] Already following ", userID);
     }
-    friends.add(userID);
+    friends.push(userID);
 }
 
 getAllFriends()
