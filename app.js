@@ -85,18 +85,14 @@ function getUser(since_id) {
     return getTweets(since_id)
         .then((response) => {
             for (let i = 0; i < response.statuses.length; i++) {
-                var tweet;
-                if (response.statuses[i].retweeted_status) {
-                    tweet = response.statuses[i].retweeted_status;
-                } else {
-                    tweet = response.statuses[i];
-                }
-
-                if (!friends.includes(tweet.user.id_str)) {
-                    console.log(
-                        `[Users] Found new user with ID of ${tweet.user.id_str}`
-                    );
-                    return tweet.user.id_str;
+                if (!response.statuses[i].retweeted_status) {
+                    var tweet = response.statuses[i];
+                    if (!friends.includes(tweet.user.id_str)) {
+                        console.log(
+                            `[Users] Found new user with ID of ${tweet.user.id_str}`
+                        );
+                        return tweet.user.id_str;
+                    }
                 }
             }
 
@@ -162,9 +158,13 @@ function interact(userID) {
 getAllFriends()
     .then(() => {
         setInterval(() => {
-            getUser().then((userID) => {
-                interact(userID);
-            });
+            getUser()
+                .then((userID) => {
+                    interact(userID);
+                })
+                .catch((err) => {
+                    console.log("Error getting user");
+                });
         }, 1000 * 216);
     })
     .catch((err) => {
