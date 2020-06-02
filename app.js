@@ -16,6 +16,16 @@ function delay(time, value) {
     });
 }
 
+function setRandomInterval(func, minInterval, maxInterval) {
+    var randomInterval =
+        Math.round(Math.random() * (maxInterval - minInterval)) + minInterval;
+    func();
+    console.log(`Function called. Calling again in ${randomInterval} ms`);
+    setTimeout(() => {
+        setRandomInterval(func, minInterval, maxInterval);
+    }, randomInterval);
+}
+
 function getFriends(cursor) {
     var params = {
         screen_name: config.credentials.screen_name,
@@ -157,15 +167,19 @@ function interact(userID) {
 
 getAllFriends()
     .then(() => {
-        setInterval(() => {
-            getUser()
-                .then((userID) => {
-                    interact(userID);
-                })
-                .catch((err) => {
-                    console.log("Error getting user", err);
-                });
-        }, 1000 * 216);
+        setRandomInterval(
+            () => {
+                getUser()
+                    .then((userID) => {
+                        interact(userID);
+                    })
+                    .catch((err) => {
+                        console.log("Error getting user", err);
+                    });
+            },
+            1000 * 240,
+            1000 * 360
+        );
     })
     .catch((err) => {
         console.log("Program Failed");
