@@ -70,7 +70,7 @@ function getAllFriends(cursor) {
             console.log(`[Friends] Found total of ${friends.length} friends`);
 
             if (response.next_cursor_str != "0") {
-                return delay(1000 * 8).then(() => {
+                return delay(1000 * config.request_delay).then(() => {
                     return getAllFriends(response.next_cursor_str);
                 });
             }
@@ -99,7 +99,7 @@ function getUser(since_id) {
             console.log(
                 "[Users] Did not find a new user. Fetching another batch of tweets"
             );
-            return delay(1000 * 8).then(() => {
+            return delay(1000 * config.request_delay).then(() => {
                 return getUser(response.search_metadata.max_id_str);
             });
         })
