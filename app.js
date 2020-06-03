@@ -30,7 +30,7 @@ function setRandomInterval(func, minInterval, maxInterval) {
 function recordTweet(data) {
     fs.appendFile(
         config.tweets_filename,
-        data.replace(/[\n\r]/g, ""),
+        data.replace(/[\n\r]/g, "") + "\n",
         (err) => {
             if (err) {
                 console.log(err);
