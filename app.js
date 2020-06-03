@@ -3,6 +3,7 @@ console.log("Twitter Follower Bot is starting...\n");
 // require
 var Twitter = require("twitter");
 var config = require("./config.json");
+var fs = require("fs");
 
 var T = new Twitter(config.credentials);
 
@@ -24,6 +25,18 @@ function setRandomInterval(func, minInterval, maxInterval) {
     setTimeout(() => {
         setRandomInterval(func, minInterval, maxInterval);
     }, randomInterval);
+}
+
+function recordTweet(data) {
+    fs.appendFile(
+        config.tweets_filename,
+        data.replace(/[\n\r]/g, ""),
+        (err) => {
+            if (err) {
+                console.log(err);
+            }
+        }
+    );
 }
 
 function getFriends(cursor) {
@@ -101,6 +114,11 @@ function getUser(since_id) {
                         console.log(
                             `[Users] Found new user with ID of ${tweet.user.id_str}`
                         );
+
+                        if (config.record_tweets != 0) {
+                            recordTweet(tweet.text);
+                        }
+
                         return tweet.user.id_str;
                     }
                 }
