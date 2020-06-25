@@ -1,22 +1,20 @@
 console.log("Twitter Follower Bot is starting...\n");
 
-// require
 var Twitter = require("twitter");
 var config = require("./config.json");
 var fs = require("fs");
 
 var T = new Twitter(config.credentials);
+var friends = []; // array of user_id strings
 
-// global vars
-var friends = []; // array of user_id strings, max 2000 follows at a time
-
-// functions
+// delays calling of a subsequent function by {time} seconds. resolves with {value}
 function delay(time, value) {
     return new Promise((resolve) => {
         setTimeout(() => resolve(value), time);
     });
 }
 
+// calls {func} repeatedly with a random time interval between of at least {minInterval} ms and at most {maxInterval} ms
 function setRandomInterval(func, minInterval, maxInterval) {
     var randomInterval =
         Math.round(Math.random() * (maxInterval - minInterval)) + minInterval;
@@ -27,6 +25,7 @@ function setRandomInterval(func, minInterval, maxInterval) {
     }, randomInterval);
 }
 
+// records {data} to a the file config.tweets_filename
 function recordTweet(data) {
     fs.appendFile(
         config.tweets_filename,
@@ -39,6 +38,7 @@ function recordTweet(data) {
     );
 }
 
+// gets a page of friends of config.credentials.screen_name. {cursor} indicates page
 function getFriends(cursor) {
     var params = {
         screen_name: config.credentials.screen_name,
@@ -59,6 +59,7 @@ function getFriends(cursor) {
         });
 }
 
+// returns up to 100 most recent tweets since {since_id} using config.search_keywords as query
 function getTweets(since_id) {
     var params = {
         q: config.search_keywords.join(" OR "),
@@ -81,6 +82,7 @@ function getTweets(since_id) {
         });
 }
 
+// retrieves all friends of config.credentials.screen_name, stores them in friends array
 function getAllFriends(cursor) {
     return getFriends(cursor)
         .then((response) => {
@@ -104,6 +106,7 @@ function getAllFriends(cursor) {
         });
 }
 
+// gets a #followback user that is not already being followed
 function getUser(since_id) {
     return getTweets(since_id)
         .then((response) => {
@@ -138,6 +141,7 @@ function getUser(since_id) {
         });
 }
 
+// unfollow a user identified by their {userID}
 function unfollowTweeter(userID) {
     T.post("friendships/destroy", {
         user_id: userID,
@@ -150,6 +154,7 @@ function unfollowTweeter(userID) {
         });
 }
 
+// follow user identified by their {userID}
 function followTweeter(userID) {
     T.post("friendships/create", {
         user_id: userID,
@@ -163,6 +168,7 @@ function followTweeter(userID) {
         });
 }
 
+// follows a new user. if at follower cap, unfollow the first user in the friends array
 function interact(userID) {
     console.log(`[Interact] Following user ` + userID);
 
@@ -173,9 +179,8 @@ function interact(userID) {
                 `[Interact] Already at 2000 friends. Unfollowing user with ID ${toUnfollow}`
             );
             unfollowTweeter(toUnfollow);
-        } else {
-            followTweeter(userID);
         }
+        delay(1000).then(() => followTweeter(userID));
     } else {
         friends.splice(friends.indexOf(userID), 1);
         console.log("[Interact] Already following ", userID);
@@ -183,6 +188,7 @@ function interact(userID) {
     friends.push(userID);
 }
 
+// main function
 getAllFriends()
     .then(() => {
         setRandomInterval(
